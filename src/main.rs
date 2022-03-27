@@ -38,15 +38,17 @@ async fn main() {
     let bot = Bot::new(config.bot_token);
 
     let db = config.db_file.as_str();
-    println!("Database: {}", db);
-    let db: DbPool = database::open(db)
-        .await.expect(&*format!("cannot open database {}", db));
+    info!(db, "Opening database...");
+    let db: Arc<DbPool> = Arc::new(database::open(db)
+        .await.expect(&*format!("cannot open database {}", db)));
 
+    info!("Spawning bot coroutine...");
+    let bot = Bot::new(config.bot_token);
     let send_message = warp::path("message")
         .and(warp::post())
         .and(warp::body::content_length_limit(MAX_BODY_LENGTH))
         .and(warp::body::json())
-        .and(with_db(db.clone()))
+        .and(with_db(db.deref().clone()))
         .and(with_bot(bot.clone()))
         .and_then(web::handler);
 
@@ -60,4 +62,7 @@ async fn main() {
     tokio::spawn(warp::serve(send_message).run(endpoint));
 
     tokio::signal::ctrl_c().await.unwrap();
+
+    // gracefully shutdown the database connection
+    db.deref().close().await;
 }

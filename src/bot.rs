@@ -58,6 +58,6 @@ pub async fn repl(bot: Bot, db: Arc<database::DbPool>) {
     teloxide::repls2::commands_repl(
         bot.auto_send(),
         move |bot, msg, cmd|
-            answer(bot, msg, cmd, Arc::clone(&db)), Command::ty(),
+            answer(bot, msg, cmd, db.clone()), Command::ty(),
     ).await;
 }
