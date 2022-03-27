@@ -8,6 +8,7 @@ pub struct Config {
     pub bot_token: String,
     pub log_file: String,
     pub db_file: String,
+    pub listen: String,
 }
 
 impl Config {

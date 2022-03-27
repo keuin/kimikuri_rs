@@ -1,4 +1,5 @@
 use std::convert::Infallible;
+use std::net::SocketAddr;
 use std::sync::Arc;
 
 use log::{debug, error, info, warn};
@@ -51,5 +52,12 @@ async fn main() {
 
     tokio::spawn(bot::repl(bot, Arc::new(db)));
 
-    warp::serve(send_message).run(([127, 0, 0, 1], 3030)).await;
+    let endpoint: SocketAddr = config.listen.parse()
+        .expect("Cannot parse `listen` as endpoint.");
+
+    println!("Listen on {}", endpoint);
+
+    tokio::spawn(warp::serve(send_message).run(endpoint));
+
+    tokio::signal::ctrl_c().await.unwrap();
 }
