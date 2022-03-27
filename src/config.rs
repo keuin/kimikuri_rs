@@ -19,17 +19,17 @@ impl Config {
         let mut file = File::open(file_path)
             .unwrap_or_else(|err| {
                 error!("Cannot open config file {}: {:?}", file_path, err);
-                panic!();
+                panic!("Cannot open config file {}: {:?}", file_path, err);
             });
         let mut config = String::new();
         file.read_to_string(&mut config)
             .unwrap_or_else(|err| {
                 error!("Cannot read config file {}: {:?}.", file_path, err);
-                panic!();
+                panic!("Cannot read config file {}: {:?}.", file_path, err);
             });
         return serde_json::from_str(config.as_str()).unwrap_or_else(|err| {
             error!("Cannot decode config file: {:?}.", err);
-            panic!();
+            panic!("Cannot decode config file: {:?}.", err);
         });
     }
 }
