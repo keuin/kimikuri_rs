@@ -10,11 +10,11 @@ tokio = { version = "1.17.0", features = ["full"] }
 futures = "0.3.21"
 warp = "0.3.2"
 teloxide = { version = "0.7.2", features = ["macros", "auto-send"] }
-log = "0.4.16"
-pretty_env_logger = "0.4.0"
 serde = "1.0.136"
 serde_derive = "1.0.136"
 serde_json = "1.0.79"
 sqlx = { version = "0.5", features = [ "runtime-tokio-rustls", "sqlite" ] }
 urandom = "0.1.0"
 bs58 = "0.4.0"
+tracing = "0.1.32"
+tracing-subscriber = "0.3.9"

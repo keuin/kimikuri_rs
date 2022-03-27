@@ -1,5 +1,9 @@
+use std::fmt;
+use std::fmt::Formatter;
+
 use serde_derive::{Deserialize, Serialize};
 use teloxide::{prelude2::*};
+use tracing::{debug, error, info, warn};
 use warp::{Rejection, Reply};
 
 use crate::{Bot, database, DbPool};
@@ -10,21 +14,33 @@ pub struct SendMessage {
     message: String,
 }
 
+impl fmt::Display for SendMessage {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "SendMessage {{ token={}, message={} }}", self.token, self.message)
+    }
+}
+
 #[derive(Deserialize, Serialize)]
 pub struct SendMessageResponse {
     success: bool,
     message: String,
 }
 
-pub async fn handler(req: SendMessage, db: DbPool, bot: Bot) -> std::result::Result<impl Reply, Rejection> {
-    println!("Token: {}, Message: {}", req.token, req.message);
-    let user = database::get_user_by_token(&db, req.token.as_str()).await;
-    Ok(warp::reply::json(&match user {
+impl fmt::Display for SendMessageResponse {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "SendMessageResponse {{ success={}, message={} }}", self.success, self.message)
+    }
+}
+
+pub async fn handler(req: SendMessage, db: DbPool, bot: Bot)
+                     -> std::result::Result<impl Reply, Rejection> {
+    info!("Income API request: {}", req);
+    let user =
+        database::get_user_by_token(&db, req.token.as_str()).await;
+    let response = match user {
         Ok(u) => match u {
             Some(user) => {
-                log::info!("User: {} (id={}), message: {}",
-                    user.name, user.id, req.message);
-                // TODO send message to Telegram
+                info!("Send message to user {}.", user);
                 let bot = bot.auto_send();
                 match bot.send_message(user.chat_id as i64, req.message).await {
                     Ok(_) => SendMessageResponse {
@@ -32,7 +48,7 @@ pub async fn handler(req: SendMessage, db: DbPool, bot: Bot) -> std::result::Res
                         message: String::new(),
                     },
                     Err(why) => {
-                        println!("Failed to send message to telegram: {:?}", why);
+                        error!("Failed to send message to telegram: {:?}", why);
                         SendMessageResponse {
                             success: false,
                             message: String::from("Failed to send message to telegram."),
@@ -41,19 +57,21 @@ pub async fn handler(req: SendMessage, db: DbPool, bot: Bot) -> std::result::Res
                 }
             }
             None => {
-                log::warn!("Invalid token {}, message: {}", req.token, req.message);
+                warn!("Invalid token: {}.", req);
                 SendMessageResponse {
                     success: false,
                     message: String::from("Invalid token."),
                 }
             }
         },
-        Err(_) => {
-            log::error!("Error when querying the database.");
+        Err(err) => {
+            error!("Error when querying the database: {:?}.", err);
             SendMessageResponse {
                 success: false,
                 message: String::from("Invalid parameter."),
             }
         }
-    }))
+    };
+    debug!("Response: {}", response);
+    Ok(warp::reply::json(&response))
 }
