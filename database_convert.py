@@ -1,6 +1,10 @@
 import json
 import sqlite3
 
+'''
+Convert legacy Python kimikuri-server's users.json to sqlite3 database used by kimikuri_rs.
+'''
+
 
 # noinspection SqlNoDataSourceInspection
 def convert(db_file: str = 'kimikuri.db', json_file: str = 'users.json'):
