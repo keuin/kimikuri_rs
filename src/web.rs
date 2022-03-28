@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fmt;
 use std::fmt::Formatter;
 
@@ -5,6 +6,7 @@ use serde_derive::{Deserialize, Serialize};
 use teloxide::{prelude2::*};
 use tracing::{debug, error, info, warn};
 use warp::{Rejection, Reply};
+use warp::reply::Json;
 
 use crate::{Bot, database, DbPool};
 
@@ -32,8 +34,26 @@ impl fmt::Display for SendMessageResponse {
     }
 }
 
+pub async fn get_handler(params: HashMap<String, String>, db: DbPool, bot: Bot)
+                         -> std::result::Result<impl Reply, Rejection> {
+    let token = params.get("token");
+    let message = params.get("message");
+    if token == None || message == None {
+        return Ok(warp::reply::json(&SendMessageResponse {
+            success: false,
+            message: String::from(concat!("Missing parameters. ",
+            "Usage: GET /<path>?token=<kimikuri_token>&message=<message>")),
+        }));
+    }
+    let message = SendMessage {
+        token: token.unwrap().clone(),
+        message: message.unwrap().clone(),
+    };
+    handler(message, db, bot).await
+}
+
 pub async fn handler(req: SendMessage, db: DbPool, bot: Bot)
-                     -> std::result::Result<impl Reply, Rejection> {
+                     -> std::result::Result<Json, Rejection> {
     info!("Income API request: {}", req);
     let user =
         database::get_user_by_token(&db, req.token.as_str()).await;

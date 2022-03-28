@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::ops::Deref;
@@ -59,25 +60,34 @@ async fn main() {
 
     let db = config.db_file.as_str();
     info!(db, "Opening database...");
+    // TODO replace Arc<DbPool> with DbPool::clone
     let db: Arc<DbPool> = Arc::new(database::open(db)
         .await.expect(&*format!("cannot open database {}", db)));
 
     info!("Spawning bot coroutine...");
     let bot = Bot::new(config.bot_token);
-    let send_message = warp::path("message")
-        .and(warp::post())
+    tokio::spawn(bot::repl(bot.clone(), db.clone()));
+
+    info!("Initializing HTTP routes...");
+    let route_post = warp::post()
         .and(warp::body::content_length_limit(MAX_BODY_LENGTH))
         .and(warp::body::json())
         .and(with_db(db.deref().clone()))
         .and(with_bot(bot.clone()))
         .and_then(web::handler);
-    tokio::spawn(bot::repl(bot, db.clone()));
+    let route_get = warp::get()
+        .and(warp::query::<HashMap<String, String>>())
+        .and(with_db(db.deref().clone()))
+        .and(with_bot(bot.clone()))
+        .and_then(web::get_handler);
+    let routes = warp::path("message")
+        .and(route_post).or(route_get);
 
     info!("Starting HTTP server...");
     let endpoint: SocketAddr = config.listen.parse()
         .expect("Cannot parse `listen` as endpoint.");
     info!("Start listening on {}", endpoint);
-    tokio::spawn(warp::serve(send_message).run(endpoint));
+    tokio::spawn(warp::serve(routes).run(endpoint));
 
     debug!("Waiting for Ctrl-C in main coroutine...");
     tokio::signal::ctrl_c().await.unwrap();
