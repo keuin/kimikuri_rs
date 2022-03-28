@@ -53,7 +53,8 @@ async fn answer(bot: AutoSend<Bot>, message: Message, command: Command, db: DbPo
                 let message =
                     match database::get_user_by_chat_id(&db, chat_id as u64).await {
                         Ok(u) => match u {
-                            Some(user) => format!("Your token is `{}`. Treat it as a secret!", user.token),
+                            Some(user) =>
+                                format!("Your token is `{}`. Treat it as a secret!", user.token),
                             _ => String::from("Error: cannot fetch token.")
                         },
                         Err(why) => {

@@ -45,7 +45,7 @@ async fn main() {
         Ok(l) => l,
         Err(_) => {
             eprintln!("Invalid log level: {}. Use {:?} instead.",
-                     config.log_level, DEFAULT_LOG_LEVEL);
+                      config.log_level, DEFAULT_LOG_LEVEL);
             DEFAULT_LOG_LEVEL
         }
     };
@@ -88,7 +88,7 @@ async fn main() {
 
     debug!("Waiting for Ctrl-C in main coroutine...");
     tokio::signal::ctrl_c().await.unwrap();
-    
+
     // gracefully shutdown the database connection
     info!("Closing database...");
     db.close().await;
