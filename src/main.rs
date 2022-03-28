@@ -1,9 +1,7 @@
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::net::SocketAddr;
-use std::ops::Deref;
 use std::str::FromStr;
-use std::sync::Arc;
 
 use teloxide::prelude2::*;
 use tracing::{debug, info, Level};
@@ -60,9 +58,8 @@ async fn main() {
 
     let db = config.db_file.as_str();
     info!(db, "Opening database...");
-    // TODO replace Arc<DbPool> with DbPool::clone
-    let db: Arc<DbPool> = Arc::new(database::open(db)
-        .await.expect(&*format!("cannot open database {}", db)));
+    let db: DbPool = database::open(db)
+        .await.expect(&*format!("cannot open database {}", db));
 
     info!("Spawning bot coroutine...");
     let bot = Bot::new(config.bot_token);
@@ -72,12 +69,12 @@ async fn main() {
     let route_post = warp::post()
         .and(warp::body::content_length_limit(MAX_BODY_LENGTH))
         .and(warp::body::json())
-        .and(with_db(db.deref().clone()))
+        .and(with_db(db.clone()))
         .and(with_bot(bot.clone()))
         .and_then(web::handler);
     let route_get = warp::get()
         .and(warp::query::<HashMap<String, String>>())
-        .and(with_db(db.deref().clone()))
+        .and(with_db(db.clone()))
         .and(with_bot(bot.clone()))
         .and_then(web::get_handler);
     let routes = warp::path("message")
@@ -94,5 +91,5 @@ async fn main() {
     
     // gracefully shutdown the database connection
     info!("Closing database...");
-    db.deref().close().await;
+    db.close().await;
 }

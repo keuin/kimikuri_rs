@@ -1,6 +1,4 @@
 use std::error::Error;
-use std::ops::Deref;
-use std::sync::Arc;
 
 use teloxide::{prelude2::*, types::MessageKind, utils::command::BotCommand};
 use tracing::{debug, error, info};
@@ -17,7 +15,7 @@ enum Command {
     Start,
 }
 
-async fn answer(bot: AutoSend<Bot>, message: Message, command: Command, db: Arc<DbPool>)
+async fn answer(bot: AutoSend<Bot>, message: Message, command: Command, db: DbPool)
                 -> Result<(), Box<dyn Error + Send + Sync>> {
     debug!("Answering telegram message: {:?}", message);
     match command {
@@ -36,7 +34,6 @@ async fn answer(bot: AutoSend<Bot>, message: Message, command: Command, db: Arc<
                     return Ok(()); // ignore messages from channel
                 }
                 let from = msg.from.unwrap();
-                let db = db.deref();
                 let chat_id = message.chat.id;
                 let user = User {
                     id: from.id as u64,
@@ -44,7 +41,7 @@ async fn answer(bot: AutoSend<Bot>, message: Message, command: Command, db: Arc<
                     token: token::generate(),
                     chat_id: chat_id as u64,
                 };
-                if let Err(why) = database::create_user(db, &user).await {
+                if let Err(why) = database::create_user(&db, &user).await {
                     if format!("{:?}", why).contains("UNIQUE constraint failed") {
                         info!("User exists: {}", user);
                     } else {
@@ -54,7 +51,7 @@ async fn answer(bot: AutoSend<Bot>, message: Message, command: Command, db: Arc<
                     info!("Created user {}.", user);
                 }
                 let message =
-                    match database::get_user_by_chat_id(db, chat_id as u64).await {
+                    match database::get_user_by_chat_id(&db, chat_id as u64).await {
                         Ok(u) => match u {
                             Some(user) => format!("Your token is `{}`. Treat it as a secret!", user.token),
                             _ => String::from("Error: cannot fetch token.")
@@ -73,7 +70,7 @@ async fn answer(bot: AutoSend<Bot>, message: Message, command: Command, db: Arc<
     Ok(())
 }
 
-pub async fn repl(bot: Bot, db: Arc<database::DbPool>) {
+pub async fn repl(bot: Bot, db: database::DbPool) {
     teloxide::repls2::commands_repl(
         bot.auto_send(),
         move |bot, msg, cmd|
