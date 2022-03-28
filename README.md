@@ -24,6 +24,23 @@ by WeChat's poor functionality.
       "message": "<message>"
     }
     ```
+- Response:
+    + Status Code: 200 (If the request is a valid JSON POST)
+    + Body:
+        - Success:
+            ```json
+            {
+              "success": true,
+              "message": ""
+            }
+            ```
+        - Fail:
+            ```json
+            {
+              "success": false,
+              "message": "Invalid token."
+            }
+            ```
 
 ### Using GET (Depreciated, kept for backward compatibility)
 
@@ -32,6 +49,7 @@ by WeChat's poor functionality.
 - Url Parameters:
     + `token`: Your token
     + `message`: Text message
+- Response: Same to POST requests
 
 Note: To prevent potential cache on the network, add a nonce parameter (such as a timestamp) if necessary.
 
