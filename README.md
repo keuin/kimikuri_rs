@@ -4,6 +4,8 @@ Kimikuri is a telegram bot which provides every Telegram user a unique token, an
 messages to their Telegram. Originally this project was created to replace *ServerChan (方糖)*, which is mainly restricted
 by WeChat's poor functionality.
 
+[GitHub](https://github.com/keuin/kimikuri_rs)  [Website](https://kimikuri.keuin.cc/)
+
 # Usage
 
 1. Start a conversation with [Kimikuri_yourbot](https://t.me/Kimikuri_yourbot).
@@ -42,7 +44,7 @@ by WeChat's poor functionality.
             }
             ```
 
-### Using GET (Depreciated, kept for backward compatibility)
+### Using GET (Deprecated, kept for backward compatibility)
 
 - Url: `https://kimikuri.keuin.cc/api/message`
 - Method: `GET`
