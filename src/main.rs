@@ -1,3 +1,4 @@
+use std::{io, path};
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::net::SocketAddr;
@@ -6,7 +7,8 @@ use std::str::FromStr;
 use teloxide::prelude2::*;
 use tracing::{debug, info, Level};
 use tracing::instrument;
-use tracing_subscriber::FmtSubscriber;
+use tracing_subscriber::fmt;
+use tracing_subscriber::layer::SubscriberExt;
 use warp::Filter;
 
 use config::Config;
@@ -50,9 +52,20 @@ async fn main() {
         }
     };
     eprintln!("Configuration is loaded. Set log level to {:?}.", log_level);
-    let subscriber = FmtSubscriber::builder()
+    let log_file_path = path::Path::new(&config.log_file);
+    let parent = log_file_path.parent().expect("Cannot extract parent.");
+    let filename = log_file_path.file_name().expect("Cannot extract file name.");
+    let (nb_file_appender, _guard) =
+        tracing_appender::non_blocking(
+            tracing_appender::rolling::never(parent, filename));
+    let subscriber = fmt::Subscriber::builder()
         .with_max_level(log_level)
-        .finish();
+        .with_writer(io::stderr) // log to stderr
+        .finish()
+        .with(fmt::Layer::default()
+            .with_writer(nb_file_appender) // log to file
+            .with_ansi(false)); // remove color control characters from log file
+
     tracing::subscriber::set_global_default(subscriber)
         .expect("Failed to set default subscriber");
 
