@@ -25,13 +25,9 @@ mod config;
 
 const CONFIG_FILE_NAME: &str = "kimikuri.json";
 
-fn with_db(db_pool: DbPool) -> impl Filter<Extract=(DbPool, ), Error=Infallible> + Clone {
-    warp::any().map(move || db_pool.clone())
-}
-
-// TODO replace with generic
-fn with_bot(bot: Bot) -> impl Filter<Extract=(Bot, ), Error=Infallible> + Clone {
-    warp::any().map(move || bot.clone())
+fn with_object<T: Clone + Send>(obj: T)
+                                -> impl Filter<Extract=(T, ), Error=Infallible> + Clone {
+    warp::any().map(move || obj.clone())
 }
 
 #[instrument]
@@ -91,13 +87,13 @@ async fn main() {
     let route_post = warp::post()
         .and(warp::body::content_length_limit(config.max_body_size))
         .and(warp::body::json())
-        .and(with_db(db.clone()))
-        .and(with_bot(bot.clone()))
+        .and(with_object(db.clone()))
+        .and(with_object(bot.clone()))
         .and_then(web::handler);
     let route_get = warp::get()
         .and(warp::query::<HashMap<String, String>>())
-        .and(with_db(db.clone()))
-        .and(with_bot(bot.clone()))
+        .and(with_object(db.clone()))
+        .and(with_object(bot.clone()))
         .and_then(web::get_handler);
     let routes = warp::path("message")
         .and(route_post).or(route_get);
