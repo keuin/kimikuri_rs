@@ -76,7 +76,7 @@ async fn main() {
 
     let db = config.db_file.as_str();
     info!(db, "Opening database...");
-    let db: DbPool = database::open(db)
+    let db: DbPool = database::open(db, config.sqlite_thread_pool_size)
         .await.expect(&*format!("cannot open database {}", db));
 
     info!("Spawning bot coroutine...");

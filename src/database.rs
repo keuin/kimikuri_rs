@@ -9,15 +9,13 @@ use crate::user::User;
 
 pub type DbPool = sqlx::sqlite::SqlitePool;
 
-const SQLITE_THREAD_POOL_SIZE: u32 = 16;
-
-pub async fn open(file_path: &str) -> Result<DbPool, sqlx::Error> {
+pub async fn open(file_path: &str, sqlite_thread_pool_size: u32) -> Result<DbPool, sqlx::Error> {
     let opt =
         SqliteConnectOptions::from_str(format!("sqlite://{}", file_path).as_str())?
             .create_if_missing(true);
     debug!("Opening database pool...");
     let pool = SqlitePoolOptions::new()
-        .max_connections(SQLITE_THREAD_POOL_SIZE)
+        .max_connections(sqlite_thread_pool_size)
         .connect_with(opt).await?;
 
     // create table

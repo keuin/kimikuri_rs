@@ -19,6 +19,8 @@ pub struct Config {
     pub log_level: String,
     #[serde(default = "Config::default_max_body_size")]
     pub max_body_size: u64,
+    #[serde(default = "Config::default_sqlite_thread_pool_size")]
+    pub sqlite_thread_pool_size: u32,
 }
 
 impl Config {
@@ -40,6 +42,10 @@ impl Config {
 
     fn default_db_file() -> String {
         String::from("kimikuri.db")
+    }
+
+    fn default_sqlite_thread_pool_size() -> u32 {
+        16
     }
 }
 
