@@ -34,7 +34,6 @@ fn with_object<T: Clone + Send>(obj: T)
 #[tokio::main]
 async fn main() {
     eprintln!("Loading configuration file {}...", CONFIG_FILE_NAME);
-    // TODO make some fields optional
     let config = Config::from_file(CONFIG_FILE_NAME);
 
     // configure logger
