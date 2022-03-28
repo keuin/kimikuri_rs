@@ -27,7 +27,8 @@ by WeChat's poor functionality.
     }
     ```
 - Response:
-    + Status Code: 200 (If the request is a valid JSON POST)
+    + Status Code: `200` (If the request is a valid JSON POST), `other` (If not)
+    + Content-Type: `application/json`
     + Body:
         - Success:
             ```json
