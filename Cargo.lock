@@ -829,7 +829,7 @@ dependencies = [
 
 [[package]]
 name = "kimikuri_rs"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "bs58",
  "futures",

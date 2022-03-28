@@ -1,7 +1,7 @@
 use std::{io, path};
 use std::collections::HashMap;
 use std::convert::Infallible;
-use std::net::SocketAddr;
+use std::net::{SocketAddr, ToSocketAddrs};
 use std::str::FromStr;
 
 use teloxide::prelude2::*;
@@ -104,7 +104,11 @@ async fn main() {
 
     info!("Starting HTTP server...");
     let endpoint: SocketAddr = config.listen.parse()
-        .expect("Cannot parse `listen` as endpoint.");
+        .unwrap_or_else(|_| config.listen
+            .to_socket_addrs()
+            .expect("Cannot resolve endpoint.")
+            .next()
+            .expect("Cannot resolve endpoint."));
     info!("Start listening on {}", endpoint);
     tokio::spawn(warp::serve(routes).run(endpoint));
 
