@@ -7,6 +7,7 @@ use std::str::FromStr;
 use teloxide::prelude2::*;
 use tracing::{debug, info, Level};
 use tracing::instrument;
+use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::fmt;
 use tracing_subscriber::layer::SubscriberExt;
 use warp::Filter;
@@ -23,8 +24,6 @@ mod token;
 mod config;
 
 const CONFIG_FILE_NAME: &str = "kimikuri.json";
-const MAX_BODY_LENGTH: u64 = 1024 * 16;
-const DEFAULT_LOG_LEVEL: Level = Level::DEBUG;
 
 fn with_db(db_pool: DbPool) -> impl Filter<Extract=(DbPool, ), Error=Infallible> + Clone {
     warp::any().map(move || db_pool.clone())
@@ -47,27 +46,37 @@ async fn main() {
         Ok(l) => l,
         Err(_) => {
             eprintln!("Invalid log level: {}. Use {:?} instead.",
-                      config.log_level, DEFAULT_LOG_LEVEL);
-            DEFAULT_LOG_LEVEL
+                      config.log_level, config::DEFAULT_LOG_LEVEL);
+            Level::from_str(config::DEFAULT_LOG_LEVEL).unwrap()
         }
     };
     eprintln!("Configuration is loaded. Set log level to {:?}.", log_level);
-    let log_file_path = path::Path::new(&config.log_file);
-    let parent = log_file_path.parent().expect("Cannot extract parent.");
-    let filename = log_file_path.file_name().expect("Cannot extract file name.");
-    let (nb_file_appender, _guard) =
-        tracing_appender::non_blocking(
-            tracing_appender::rolling::never(parent, filename));
+    let _guard: WorkerGuard;
     let subscriber = fmt::Subscriber::builder()
         .with_max_level(log_level)
         .with_writer(io::stderr) // log to stderr
-        .finish()
-        .with(fmt::Layer::default()
-            .with_writer(nb_file_appender) // log to file
-            .with_ansi(false)); // remove color control characters from log file
-
-    tracing::subscriber::set_global_default(subscriber)
-        .expect("Failed to set default subscriber");
+        .finish();
+    if !config.log_file.is_empty() {
+        let log_file_path = path::Path::new(&config.log_file);
+        let parent = log_file_path.parent()
+            .expect("Invalid log_file: Cannot extract parent.");
+        let filename = log_file_path.file_name()
+            .expect("Invalid log_file: Cannot extract file name.");
+        let (nb_file_appender, guard) = tracing_appender::non_blocking(
+            tracing_appender::rolling::never(parent, filename));
+        _guard = guard;
+        let subscriber = subscriber.with(
+            fmt::Layer::default()
+                .with_writer(nb_file_appender) // log to file
+                .with_ansi(false) // remove color control characters from log file
+        );
+        tracing::subscriber::set_global_default(subscriber)
+            .expect("Failed to set default subscriber");
+    } else {
+        // log file is not specified, do not write logs to file
+        tracing::subscriber::set_global_default(subscriber)
+            .expect("Failed to set default subscriber");
+    }
 
     let db = config.db_file.as_str();
     info!(db, "Opening database...");
@@ -80,7 +89,7 @@ async fn main() {
 
     info!("Initializing HTTP routes...");
     let route_post = warp::post()
-        .and(warp::body::content_length_limit(MAX_BODY_LENGTH))
+        .and(warp::body::content_length_limit(config.max_body_size))
         .and(warp::body::json())
         .and(with_db(db.clone()))
         .and(with_bot(bot.clone()))
