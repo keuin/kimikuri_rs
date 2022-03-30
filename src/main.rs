@@ -4,6 +4,7 @@ use std::convert::Infallible;
 use std::net::{SocketAddr, ToSocketAddrs};
 use std::str::FromStr;
 
+use clap::Parser;
 use teloxide::prelude2::*;
 use tracing::{debug, info, Level};
 use tracing::instrument;
@@ -29,11 +30,21 @@ fn with_object<T: Clone + Send>(obj: T) -> impl Filter<Extract=(T, ), Error=Infa
     warp::any().map(move || obj.clone())
 }
 
+#[derive(Parser, Debug)]
+#[clap(author, version, about, long_about = None)]
+struct CliArgs {
+    /// The configuration file to use.
+    #[clap(short, long, default_value_t = String::from(CONFIG_FILE_NAME))]
+    config: String,
+}
+
 #[instrument]
 #[tokio::main]
 async fn main() {
-    eprintln!("Loading configuration file {}...", CONFIG_FILE_NAME);
-    let config = Config::from_file(CONFIG_FILE_NAME);
+    let args = CliArgs::parse();
+
+    eprintln!("Loading configuration file {}...", args.config);
+    let config = Config::from_file(args.config.as_str());
 
     // configure logger
     let log_level = match Level::from_str(&*config.log_level) {
