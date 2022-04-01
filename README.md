@@ -78,3 +78,37 @@ def send_message(token: str, message: str):
 if __name__ == '__main__':
     send_message('<your token>', 'Hello, world!')
 ```
+
+If you wish a unix tool instead, use the bash script below:
+
+```shell
+#!/bin/bash
+
+# Disable globbing (expanding '*'), prevent some leaking exploits for security
+set -f
+
+TOKEN='<your API token>'
+
+# Replace newline with '\\n', using a bash extension
+MESSAGE="${1//$'\n'/\\n}"
+# Escape '"' (JSON)
+MESSAGE="${MESSAGE//\"/\\\"}"
+if [ -z "$MESSAGE" ]
+then
+    # Telegram API refuses to send empty string, so we print a help message instead.
+    echo "Usage: $0 <message>"
+    exit
+fi
+#echo "$MESSAGE"
+curl -X POST https://kimikuri.keuin.cc/api/message \
+     -H 'Content-Type: application/json' \
+     --data "{\"token\":\"$TOKEN\",\"message\":\"$MESSAGE\"}" \
+     --connect-timeout 10 --retry 3
+```
+
+This script requires [cURL](https://curl.se/), which is shipped with almost all linux distros by default.
+Place your API token in `$TOKEN`, then execute the script like this:
+
+```shell
+./kimikuri.sh "Hello, world!"
+```
